@@ -6803,6 +6803,17 @@ def prefetch_add_subquery(sq, subqueries):
                                  'query: %s%s' % (subquery, tgt_err))
 
         if fks:
+            if last_query._cte_list:
+                last_query = last_query.clone()
+                if subquery._cte_list is None:
+                    subquery._cte_list = last_query._cte_list
+                else:
+                    cte_list = list(subquery._cte_list)
+                    for cte in last_query._cte_list:
+                        if cte not in cte_list:
+                            cte_list.append(cte)
+                    subquery._cte_list = tuple(cte_list)
+                last_query._cte_list = None
             expr = reduce(operator.or_, [
                 (fk << last_query.select(pk))
                 for (fk, pk) in zip(fks, pks)])
